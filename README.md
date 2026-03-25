@@ -124,18 +124,7 @@ python -m scripts.extract.ibge     # Apenas IBGE
 python -m scripts.extract.mec      # Apenas MEC
 ```
 
-### 2. Download manual do PNAES (obrigatório)
-
-Os arquivos do PNAES/FNDE não têm URL estável. Faça o download manualmente:
-
-1. Acesse o portal do FNDE: https://www.fnde.gov.br/sigefweb/
-2. Navegue até **PNAE → Dados Abertos → Recursos Transferidos**
-3. Baixe as planilhas de repasse por **Rede Escolar** para cada ano disponível
-4. Salve os arquivos `.xlsx` em `dados/pnaes/redes/`
-
-Nomenclatura esperada: `PNAE_Redes_<ANO>.xlsx`
-
-### 3. Transformação
+### 2. Transformação
 
 ```bash
 python -m scripts.transform.run_all
