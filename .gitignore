@@ -1,0 +1,38 @@
+# ── Dados brutos e processados (não versionar arquivos grandes) ───────────
+dados/**/*.csv
+dados/**/*.xlsx
+dados/**/*.xls
+dados/**/*.zip
+
+# Mantém a estrutura de pastas no git
+!dados/**/.gitkeep
+
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Streamlit cache ───────────────────────────────────────────────────────
+scripts/load/geodata/*.json
+.streamlit/
+
+# ── Selenium staging ──────────────────────────────────────────────────────
+Downloads_Selenium_Staging/
+
+# ── SO / IDEs ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+*.lock~
+
+# ── Jupyter ───────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
