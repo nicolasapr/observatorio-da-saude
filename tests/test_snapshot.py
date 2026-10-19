@@ -45,6 +45,15 @@ class SnapshotTest(unittest.TestCase):
             self.assertFalse((raiz/'fora.txt').exists())
             self.assertFalse((raiz/'destino').exists())
 
+    def test_destino_arquivo_existente_e_preservado(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            raiz = Path(pasta)
+            destino = raiz/'nao-e-pasta'
+            destino.write_text('preservar')
+            with self.assertRaises(FileExistsError):
+                instalar(raiz/'nao-precisa-ser-aberto.tar.gz', destino)
+            self.assertEqual(destino.read_text(), 'preservar')
+
 
 if __name__ == '__main__':
     unittest.main()

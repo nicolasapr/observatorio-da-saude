@@ -36,6 +36,8 @@ def conferir(dados: Path, manifesto):
 
 def instalar(pacote: Path, destino: Path):
     destino = destino.resolve()
+    if destino.exists() and not destino.is_dir():
+        raise FileExistsError(f'{destino} não é uma pasta vazia')
     if destino.exists() and any(p.is_symlink() or (p.is_file() and p.name != '.gitkeep') for p in destino.rglob('*')):
         raise FileExistsError(f'{destino} já contém dados; use uma pasta vazia')
     destino.parent.mkdir(parents=True, exist_ok=True)
@@ -76,7 +78,7 @@ def main():
         manifesto = json.loads((args.destino/'.snapshot-manifest.json').read_text(encoding='utf-8'))
         print(f'{conferir(args.destino, manifesto)} arquivos conferidos')
         return
-    if args.destino.exists() and any(p.is_file() and p.name != '.gitkeep' for p in args.destino.rglob('*')):
+    if args.destino.exists() and (not args.destino.is_dir() or any(p.is_symlink() or (p.is_file() and p.name != '.gitkeep') for p in args.destino.rglob('*'))):
         parser.error('o destino já contém dados; escolha outra pasta')
     url = f'https://api.github.com/repos/{REPOSITORIO}/releases/tags/{TAG}'
     r = requests.get(url, timeout=30)
