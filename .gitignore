@@ -1,38 +1,31 @@
-# ── Dados brutos e processados (não versionar arquivos grandes) ───────────
-dados/**/*.csv
-dados/**/*.xlsx
-dados/**/*.xls
-dados/**/*.zip
-
-# Mantém a estrutura de pastas no git
+# Dados e saídas de pesquisa não pertencem ao histórico Git.
+dados/**
+!dados/**/
 !dados/**/.gitkeep
+artigos/
+.codex/
+dashboard-estatico/
+analise/**/*.csv
+analise/**/*.json
+analise/**/*.jsonl
+analise/**/*.png
+analise/**/*.log
+analise/**/*.out
 
-# ── Python ────────────────────────────────────────────────────────────────
-__pycache__/
-*.py[cod]
-*.pyo
+# Ambientes e arquivos temporários
 .venv/
 venv/
 env/
+__pycache__/
+*.py[cod]
 *.egg-info/
 dist/
 build/
-.eggs/
-
-# ── Streamlit cache ───────────────────────────────────────────────────────
-scripts/load/geodata/*.json
 .streamlit/
-
-# ── Selenium staging ──────────────────────────────────────────────────────
 Downloads_Selenium_Staging/
-
-# ── SO / IDEs ─────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
 .DS_Store
 Thumbs.db
 *.swp
-.idea/
-.vscode/
-*.lock~
-
-# ── Jupyter ───────────────────────────────────────────────────────────────
-.ipynb_checkpoints/
+*.parcial
+*.escrevendo.xlsx

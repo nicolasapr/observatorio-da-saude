@@ -1,214 +1,120 @@
-# Observatório da Saúde — Pipeline ETL
+# Observatório da Saúde
 
-Pipeline de coleta, transformação e visualização de dados de saúde e educação alimentar no Brasil, integrando fontes do SISVAN, PNAES/FNDE, IBGE e MEC/INEP.
+Projeto de iniciação científica Aplicação de técnicas de ciência de dados à área
+da Saúde, UFPR, Jandaia do Sul, edital de 2025. O pipeline integra SISVAN,
+PNAE/FNDE, IBGE e INEP/MEC para estudos de saúde alimentar.
 
----
+Este repositório contém o código de extração, transformação, dashboard Streamlit
+e estudos analíticos. O dashboard estático publicado no GitHub Pages pertence ao
+repositório separado [obs_saude](https://github.com/nicolasapr/obs_saude).
 
-## Estrutura do Projeto
+## Organização
 
-```
-projeto/
-├── dados/                          # Dados brutos e processados (ignorados pelo git)
-│   ├── sisvan/
-│   │   ├── mensais/                # CSVs mensais baixados do SISVAN Web
-│   │   ├── anuais/                 # Sumários anuais gerados pelo Transform
-│   │   └── historico/             # Série histórica consolidada (todos os anos)
-│   ├── pnaes/
-│   │   ├── redes/                  # Planilhas PNAES Redes (download manual)
-│   │   ├── percen/
-│   │   │   ├── 2a4/                # Percentuais calculados — faixa 2 a 4 anos
-│   │   │   ├── 5a9/                # Percentuais calculados — faixa 5 a 9 anos
-│   │   │   └── Adolescentes/
-│   │   ├── valores/
-│   │   │   ├── 2a4/                # Valores PNAES tratados — faixa 2 a 4 anos
-│   │   │   ├── 5a9/
-│   │   │   └── Adolescentes/
-│   │   └── finais/
-│   │       ├── 2a4/                # Tabelas finais com repasse per capita
-│   │       ├── 5a9/
-│   │       └── Adolescentes/
-│   ├── mec/
-│   │   └── microdados/             # Microdados do Censo Escolar (INEP/ZIP)
-│   └── referencia/
-│       ├── ibge/                   # Estimativas populacionais (SIDRA API)
-│       └── quant_idades/           # Quantitativos por faixa etária
-│
-└── scripts/                        # Código-fonte do pipeline (Python)
-    ├── config.py                   # Fonte única de verdade para todos os caminhos
-    ├── extract/
-    │   ├── base.py                 # Classe abstrata BaseDownloader
-    │   ├── sisvan.py               # Scraper Selenium → dados/sisvan/mensais/
-    │   ├── ibge.py                 # API SIDRA → dados/referencia/ibge/
-    │   ├── mec.py                  # Download ZIP INEP → dados/mec/microdados/
-    │   ├── pnaes.py                # Placeholder (download manual obrigatório)
-    │   └── run_all.py              # Orquestrador CLI da camada Extract
-    ├── transform/
-    │   ├── base.py                 # Classe abstrata BaseTransformer
-    │   ├── criar_sumarios.py       # Consolida mensais → anuais (SISVAN)
-    │   ├── sumarios_anuais.py      # Agrega anuais por faixa etária
-    │   ├── sumarios_totais.py      # Série histórica multi-ano
-    │   ├── pnaes_redes.py          # Processa planilhas de Redes
-    │   ├── pnaes.py                # Calcula percentuais e valores finais PNAES
-    │   ├── repair_percentuais.py   # Corrige formatação de números brasileiros
-    │   └── run_all.py              # Orquestrador CLI da camada Transform
-    └── load/
-        ├── app.py                  # Ponto de entrada do Streamlit (run: streamlit run)
-        ├── catalog.py              # Página: Catálogo de dados disponíveis
-        ├── viz.py                  # Página: Mapa coroplético interativo
-        ├── extractor.py            # Página: Extração de dados via interface
-        └── utils.py                # Helpers compartilhados (formatação, cache)
+- `codigo/scripts/extract/`: coleta e validação das respostas oficiais.
+- `codigo/scripts/transform/`: sumários, séries, rateios e valores finais.
+- `codigo/scripts/load/`: catálogo, séries e mapas no Streamlit.
+- `analise/`: auditorias e pontos de entrada dos dois estudos.
+- `tests/`: regressões e integração da CLI com dados artificiais.
+- `docs/`: execução, proveniência, limites e validação.
+- `dados/`: dados locais; os arquivos grandes não são gravados no histórico Git.
+- `_arquivo/`: referência histórica explicitamente separada do código vigente.
+
+Os manuscritos e materiais editoriais da pasta de trabalho não são insumos do
+pipeline e não integram esta publicação do código.
+
+## Instalação e testes
+
+Requer Python 3.12 e [uv](https://docs.astral.sh/uv/).
+
+```sh
+uv sync --frozen
+uv run python -B -m unittest discover -s tests -v
 ```
 
----
+As dependências estão registradas em `uv.lock`. Os testes automatizados não
+dependem das bases grandes nem fazem consultas de rede. A execução completa do
+estudo exige os insumos oficiais e as referências etárias documentadas.
 
-## Como Funciona: Pipeline ETL
+## Extração e transformação
 
-O pipeline segue três camadas sequenciais:
-
-```
-[Fontes externas]
-      │
-      ▼
-┌─────────────┐
-│   EXTRACT   │  Baixa dados brutos → dados/sisvan/mensais/, dados/referencia/ibge/, etc.
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  TRANSFORM  │  Limpa, agrega e calcula indicadores → dados/pnaes/percen/, dados/sisvan/anuais/, etc.
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│    LOAD     │  Dashboard Streamlit — visualiza, filtra e exporta os dados processados
-└─────────────┘
+```sh
+cd codigo
+uv run --project .. python -m scripts.extract.run_all --ano 2024 --only ibge mec pnaes
+uv run --project .. python -m scripts.extract.run_all --ano 2024 --only sisvan --meses JANEIRO --fases Adolescentes --habitos 'Consumo de fruta'
+uv run --project .. python -m scripts.transform.run_all --ano 2024
+uv run --project .. streamlit run scripts/load/app.py
 ```
 
-### Fontes de dados
+O comando SISVAN acima testa um marcador; sem os seletores, a coleta inclui os
+doze meses, três faixas e dez marcadores do ano. Uma coleta parcial sem sumário
+prévio não é suficiente para executar toda a transformação.
 
-| Fonte | Dado | Método de extração |
-|-------|------|--------------------|
-| SISVAN Web | Hábitos alimentares mensais por município | Selenium (automático) |
-| IBGE SIDRA | Estimativas populacionais por município | API REST (automático) |
-| INEP/MEC | Microdados do Censo Escolar | Download ZIP (automático) |
-| FNDE/PNAES | Repasse PNAE por rede escolar | **Download manual** (ver abaixo) |
+Para trabalhar em outra área, defina `OBSERVATORIO_DADOS_DIR` como o caminho
+absoluto da pasta de dados. Isso permite validar novas coletas sem substituir o
+snapshot dos artigos.
 
----
+O procedimento completo e os limites estão em
+[Execução do pipeline](docs/EXECUCAO-DO-PIPELINE.md).
 
-## Pré-requisitos
+## Regras de processamento
 
-```bash
-pip install streamlit pandas selenium requests openpyxl folium streamlit-folium
+Os municípios são unidos pelo código IBGE de seis dígitos. Percentuais SISVAN
+resultam da soma das respostas positivas dividida pela soma das respostas
+válidas. Não são somados nem calculados pela média simples dos percentuais
+municipais.
+
+O financiamento adolescente inclui Ensino Médio municipal direto e os dois
+componentes ponderados pelas matrículas estaduais, conforme a regra aprovada.
+Os rateios demográficos permanecem fixos em 2019. O FNDE de 2024 registra valores
+previstos; os anos de 2015 a 2023 registram pagamentos.
+
+Consulte [Proveniência e fórmulas](docs/PROVENIENCIA-DOS-DADOS-E-CALCULOS.md) e
+[Fluxo das transformações](docs/FLUXO-DE-TRANSFORMACOES.md).
+
+## Estudos derivados
+
+- `analise/estudo_series_temporais.py`: adolescentes da região Norte, Mann-Kendall,
+  Sen e SARIMA, de janeiro de 2015 a dezembro de 2024.
+- `analise/estudo_caso_pnae.py`: painel ecológico municipal, IPCA com base 2024,
+  repasse por matrícula, limites de respostas e sensibilidade do índice.
+
+Esses scripts gravam produtos analíticos em `analise/`. Eles não alteram os
+insumos brutos do ETL. As associações ecológicas não demonstram efeitos
+individuais ou causais do financiamento.
+
+## Dados completos e reprodução do snapshot
+
+Todos os 986 arquivos da pasta de dados preservada estão disponíveis na
+[Release dos dados](https://github.com/nicolasapr/observatorio-da-saude/releases/tag/dados-2015-2024-20261018).
+O pacote tem aproximadamente 572 MB (3,06 GB descompactados), com manifesto e
+SHA-256 por arquivo. Ele não ocupa o histórico Git do código.
+
+Depois de instalar as dependências, baixe e confira os dados:
+
+```sh
+uv run python analise/baixar_snapshot.py
+uv run python analise/baixar_snapshot.py --verificar
 ```
 
-Para o scraper SISVAN, instale também o ChromeDriver compatível com sua versão do Chrome.
+O instalador exige uma pasta de destino vazia e não sobrescreve dados existentes.
+Use `--destino /caminho/alternativo/dados` para instalar em outra pasta e defina
+`OBSERVATORIO_DADOS_DIR` ao executar o pipeline nessa área.
 
----
-
-## Executando o Pipeline
-
-### 1. Extração automática
-
-```bash
-# Da raiz do projeto
-python -m scripts.extract.run_all
+```sh
+uv run python -B analise/validar_transformacao.py --destino /tmp/observatorio-validacao-historica
+uv run python -B analise/verificar_comportamento.py
+uv run python -B analise/auditar_pipeline.py
+uv run python -B analise/conferir_mk.py
 ```
 
-Executa em sequência: SISVAN → IBGE → MEC.
+O primeiro comando regenera e compara os produtos numa pasta separada. Requer o
+snapshot histórico local. Ele não comprova a disponibilidade atual das fontes.
 
-Para executar individualmente:
+O acervo preserva 397 dos 3.600 relatórios brutos SISVAN possíveis, junto de 360
+sumários mensais canônicos. Os sumários existentes são preservados quando faltam
+brutos; não se inventam registros para completar relatórios. Uma reconstrução
+integral a partir do zero exige recuperar o restante do acervo bruto.
 
-```bash
-python -m scripts.extract.sisvan   # Apenas SISVAN
-python -m scripts.extract.ibge     # Apenas IBGE
-python -m scripts.extract.mec      # Apenas MEC
-```
-
-### 2. Transformação
-
-```bash
-python -m scripts.transform.run_all
-```
-
-Executa na ordem correta de dependências:
-1. Reparo de formatação (`repair_percentuais`)
-2. Sumários mensais → anuais (`criar_sumarios`)
-3. Sumários anuais por faixa (`sumarios_anuais`)
-4. Série histórica (`sumarios_totais`)
-5. Processamento PNAES Redes (`pnaes_redes`)
-6. Cálculo de percentuais e valores finais (`pnaes`)
-
----
-
-## Camada Load — Dashboard Streamlit
-
-O dashboard é a interface de consulta e extração dos dados processados.
-
-### Iniciando
-
-```bash
-# Da pasta projeto/
-streamlit run scripts/load/app.py
-```
-
-O dashboard abrirá em `http://localhost:8501`.
-
-### Páginas disponíveis
-
-#### Catálogo de Dados
-Exibe uma matriz de status mostrando quais arquivos de dados estão disponíveis para cada combinação de (fonte × ano × faixa etária). Útil para verificar se o pipeline rodou com sucesso antes de analisar.
-
-#### Mapa Coroplético
-Visualização geográfica dos indicadores por município brasileiro.
-
-- Selecione o **indicador** (hábito alimentar, repasse per capita, etc.)
-- Selecione o **ano** e a **faixa etária**
-- O mapa exibe as diferenças regionais com escala de cores automática
-- Os dados do GeoJSON são buscados da API do IBGE e cacheados localmente
-
-#### Extração de Dados
-Interface para exportar os dados processados:
-
-1. Escolha a **fonte** (SISVAN, PNAES, MEC, IBGE)
-2. Aplique **filtros** (ano, estado, faixa etária, indicador)
-3. Visualize a tabela resultante na tela
-4. Clique em **Baixar CSV** para exportar
-
-```
-Fluxo de extração no app:
-  Usuário seleciona filtros
-        │
-        ▼
-  extractor.py carrega o arquivo CSV/XLSX correspondente de dados/
-        │
-        ▼
-  Filtragem e formatação em memória (pandas)
-        │
-        ▼
-  Exibição em st.dataframe() + botão de download
-```
-
-### Configuração de caminhos
-
-Todos os caminhos do pipeline são definidos em `scripts/config.py`. Se você mover a pasta `dados/`, basta atualizar `DADOS_DIR` neste arquivo — todos os módulos herdam automaticamente o novo caminho.
-
-```python
-# scripts/config.py
-PROJETO_DIR = Path(__file__).parent.parent
-DADOS_DIR = PROJETO_DIR / "dados"
-SISVAN_MENSAIS_DIR = DADOS_DIR / "sisvan" / "mensais"
-# ...
-```
-
----
-
-## Git e Dados
-
-Os arquivos de dados (`.csv`, `.xlsx`, `.xls`, `.zip`) são **ignorados pelo git** (ver `.gitignore`). Apenas a estrutura de diretórios é versionada via arquivos `.gitkeep`.
-
-Para popular os dados em uma nova máquina:
-1. Clone o repositório
-2. Execute `python -m scripts.extract.run_all`
-3. Faça o download manual do PNAES (ver acima)
-4. Execute `python -m scripts.transform.run_all`
-5. Inicie o dashboard com `streamlit run scripts/load/app.py`
+O estado operacional da revisão de outubro de 2026 está documentado em
+[Validação do pipeline](docs/VALIDACAO-2026-10-18.md). A validação do SISVAN nesta
+etapa utiliza o acervo já baixado; uma nova coleta fica para outra etapa.
